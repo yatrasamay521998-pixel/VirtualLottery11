@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "78267056242",
+    "project_id": "gk-lottery-virtual",
+    "storage_bucket": "gk-lottery-virtual.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78267056242:android:f38ad2e808ebba1a8f42eb",
+        "android_client_info": {
+          "package_name": "com.example.virtuallottery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu_UeE5WxJq7rEXvzarn-QjCBgXfUavSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

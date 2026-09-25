@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virtual Lottery Admin</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f5fa;margin:0;color:#182033}.top{background:#202e75;color:#fff;padding:18px}.wrap{max-width:900px;margin:auto;padding:15px}.card{background:#fff;padding:18px;border-radius:14px;margin:12px 0;box-shadow:0 2px 12px #0001}input,select{width:100%;box-sizing:border-box;padding:11px;margin:6px 0 12px;border:1px solid #ccd2df;border-radius:8px}button{padding:11px 16px;border:0;border-radius:8px;background:#263b8f;color:#fff;margin:4px}.danger{background:#a52828}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.muted{color:#667085}.ok{color:#087443}.err{color:#b42318}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<div class="top"><h2>Virtual Lottery — Admin</h2><small>Firestore Admin Panel</small></div>
+<div class="wrap">
+<div class="card"><h3>Admin Login</h3><input id="email" placeholder="Admin email"><input id="pass" type="password" placeholder="Password"><button id="login">Login</button><button id="logout" style="display:none">Logout</button><p id="authmsg" class="muted"></p></div>
+<div id="panel" style="display:none">
+<div class="card"><h3>App Settings</h3><input id="title" placeholder="App title"><input id="announcement" placeholder="Announcement"><button id="saveSettings">Save Settings</button><p id="settingsMsg" class="muted"></p></div>
+<div class="card"><h3>Lottery</h3><input id="lotteryId" value="demo" placeholder="Lottery ID (example: demo)"><input id="name" placeholder="Lottery name"><div class="grid"><input id="points" type="number" placeholder="Virtual points"><input id="tickets" type="number" placeholder="Total tickets"></div><select id="status"><option>Open</option><option>Closed</option><option>Drawn</option></select><input id="winner" placeholder="Winner ticket number"><button id="saveLottery">Save Lottery</button><p id="lotteryMsg" class="muted"></p></div>
+<div class="card"><h3>Current lotteries</h3><div id="list" class="muted">Loading...</div></div>
+</div></div>
+<script>
+const PROJECT_ID='gk-lottery-virtual';
+const API_KEY='AIzaSyAu_UeE5WxJq7rEXvzarn-QjCBgXfUavSM';
+const BASE='https://firestore.googleapis.com/v1/projects/'+PROJECT_ID+'/databases/(default)/documents';
+let idToken='';
+const $=id=>document.getElementById(id);
+async function authLogin(){
+  const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+encodeURIComponent(API_KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('email').value.trim(),password:$('pass').value,returnSecureToken:true})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error?.message||'Login failed'); idToken=d.idToken;
+}
+async function fs(path,opts={}){opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{},idToken?{'Authorization':'Bearer '+idToken}:{});const r=await fetch(BASE+path,opts);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||('Firestore error '+r.status));return d}
+function str(v){return {stringValue:String(v??'')}} function num(v){return {integerValue:String(Number(v)||0)}}
+async function loadSettings(){const d=await fs('/settings%2Fapp').catch(()=>null);if(d?.fields){$('title').value=d.fields.title?.stringValue||'';$('announcement').value=d.fields.announcement?.stringValue||''}}
+async function loadLotteries(){const d=await fs('/lotteries');const docs=d.documents||[];$('list').innerHTML=docs.length?docs.map(x=>{const f=x.fields||{};return `<div style="padding:10px 0;border-bottom:1px solid #eee"><b>${f.name?.stringValue||x.name.split('/').pop()}</b> — ${f.status?.stringValue||''} — Tickets: ${f.tickets?.integerValue||0} — Winner: ${f.winner?.stringValue||'Pending'}</div>`}).join(''):'No lotteries yet.'}
+$('login').onclick=async()=>{try{await authLogin();$('authmsg').textContent='Login successful';$('authmsg').className='ok';$('panel').style.display='block';$('login').style.display='none';$('logout').style.display='inline-block';await loadSettings();await loadLotteries()}catch(e){$('authmsg').textContent=e.message;$('authmsg').className='err'}};
+$('logout').onclick=()=>{idToken='';$('panel').style.display='none';$('login').style.display='inline-block';$('logout').style.display='none';$('authmsg').textContent='Logged out'};
+$('saveSettings').onclick=async()=>{try{await fs('/settings%2Fapp?updateMask.fieldPaths=title&updateMask.fieldPaths=announcement',{method:'PATCH',body:JSON.stringify({fields:{title:str($('title').value),announcement:str($('announcement').value)}})});$('settingsMsg').textContent='Settings saved';$('settingsMsg').className='ok'}catch(e){$('settingsMsg').textContent=e.message;$('settingsMsg').className='err'}};
+$('saveLottery').onclick=async()=>{try{const id=$('lotteryId').value.trim()||'demo';await fs('/lotteries%2F'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({fields:{name:str($('name').value),points:num($('points').value),tickets:num($('tickets').value),status:str($('status').value),winner:str($('winner').value.trim())}})});$('lotteryMsg').textContent='Lottery saved';$('lotteryMsg').className='ok';await loadLotteries()}catch(e){$('lotteryMsg').textContent=e.message;$('lotteryMsg').className='err'}};
+</script></body></html>
